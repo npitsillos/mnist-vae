@@ -1,5 +1,6 @@
 import torch
 import sys
+import os
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,15 +16,16 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 from sklearn.manifold import TSNE
 
-sys.path.append("/home/pitsillos/Desktop/productivity_efficiency/torch_trainer")
+home = os.environ["HOME"]
+sys.path.append(os.path.join(home, "Desktop/productivity_efficiency/torch_trainer"))
 
 from trainer import Trainer
 
-# class MNISTDataset(MNIST):
+class MNISTDataset(MNIST):
 
-#     def __getitem__(self, index):
-#         img, _ = super(MNISTDataset, self).__getitem__(index)
-#         return img, img
+    def __getitem__(self, index):
+        img, _ = super(MNISTDataset, self).__getitem__(index)
+        return img, img
 
 class Encoder(nn.Module):
 
@@ -116,23 +118,23 @@ def loss_fn(output, target):
 
 torch.manual_seed(1)
 # download mnist & setup loaders
-train_loader = DataLoader(MNIST('./data', train=True, download=True, transform=transforms.ToTensor()),
+train_loader = DataLoader(MNISTDataset('./data', train=True, download=True, transform=transforms.ToTensor()),
     batch_size=128, shuffle=True)
-val_loader = DataLoader(MNIST('./data', train=False, transform=transforms.ToTensor()),
+val_loader = DataLoader(MNISTDataset('./data', train=False, transform=transforms.ToTensor()),
     batch_size=128, shuffle=True)
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 vae = VAE(20)
 
-# optimizer = Adam(vae.parameters(), lr=1e-3)
+optimizer = Adam(vae.parameters(), lr=1e-3)
 
-# trainer = Trainer(vae, 10, train_loader, val_loader, device, loss_fn, optimizer, 10)
-# trainer.train_model()
-# torch.save(vae.state_dict(), "./vae.pth")
+trainer = Trainer(vae, 10, train_loader, val_loader, device, loss_fn, optimizer, 10)
+trainer.train_model()
+torch.save(vae.state_dict(), "./vae.pth")
 
-vae.to(device)
-vae.load_state_dict(torch.load("./vae.pth"))
-vae.eval()
+# vae.to(device)
+# vae.load_state_dict(torch.load("./vae.pth"))
+# vae.eval()
 latent_mnist = []
 target = []
 for data, targets in val_loader:
