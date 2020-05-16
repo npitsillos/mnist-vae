@@ -4,7 +4,7 @@ A Variational Autoencoder implementation on MNIST images using convolutional lay
 
 Uses a training wrapper I created which can be found [here](https://github.com/npitsillos/productivity_efficiency/tree/master/torch_trainer).
 
-Just clone in your desktop and run ```main.py```.
+Just clone both repos in your Desktop and run ```main.py```.
 
 ## Dataset Extension
 
