@@ -14,4 +14,4 @@ The trainer's loss function field is agnostic that is why a method was used.
 
 ## Latent Space Visualisation
 
-<iframe id="igraph" scrolling="no" style="border:none; " seamless="seamless" src="./raw.html" height="525" width="100%"></iframe>
+<img src="mnist.png"/>
