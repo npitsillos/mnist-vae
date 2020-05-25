@@ -165,8 +165,8 @@ if __name__ == "__main__":
             target.extend(targets.numpy())
 
         # take first 1k
-        latent = np.array(latent_mnist[:1000])
-        target = np.array(target[:1000])
+        latent = np.array(latent_mnist)
+        target = np.array(target)
         tsne = TSNE(n_components=2, init="pca", random_state=0)
 
         X = tsne.fit_transform(latent)
