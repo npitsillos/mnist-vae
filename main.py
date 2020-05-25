@@ -60,13 +60,13 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
 
-    def __init__(self, z_dim, flattened_size):
+    def __init__(self, z_dim, output_size):
         super(Decoder, self).__init__()
 
         self.fc1 = nn.Linear(z_dim, 400)
         self.bn_fc1 = nn.BatchNorm1d(400)
-        self.fc2 = nn.Linear(400, flattened_size)
-        self.bn_fc2 = nn.BatchNorm1d(flattened_size)
+        self.fc2 = nn.Linear(400, output_size)
+        self.bn_fc2 = nn.BatchNorm1d(output_size)
 
         self.conv1 = nn.Conv2d(32, 64, 3, 1, 1)
         self.bn_conv1 = nn.BatchNorm2d(64)
@@ -110,10 +110,10 @@ class VAE(nn.Module):
     def reconstruct_digit(self, sample):
         return self.decoder(sample)
 
-def loss_fn(output, target):
-    bce = F.binary_cross_entropy(output[0], target, reduction='sum')
+def loss_fn(output, mean, logvar, target):
+    bce = F.binary_cross_entropy(output, target, reduction='sum')
     
-    kl = -0.5 * torch.sum(1 + output[2] - output[1].pow(2) - output[2].exp())
+    kl = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
 
     return bce + kl
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", type=str, default="train")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--hidden_dim", type=int, default=20)
+    parser.add_argument("--z_dim", type=int, default=20)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--print_freq", type=int, default=10)
     parser.add_argument("--weights", type=str, default="vae.pth")
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     
     torch.manual_seed(args.seed)
 
-    vae = VAE(args.hidden_dim)
+    vae = VAE(args.z_dim)
     optimizer = Adam(vae.parameters(), lr=args.lr)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     vae.to(device)
@@ -148,8 +148,6 @@ if __name__ == "__main__":
         trainer.train_model()
         torch.save(vae.state_dict(), args.weights)
 
-    train_loader = DataLoader(MNIST('./data', train=True, download=True, transform=transforms.ToTensor()),
-        batch_size=128, shuffle=True)
     val_loader = DataLoader(MNIST('./data', train=False, transform=transforms.ToTensor()),
         batch_size=128, shuffle=True)
     
