@@ -34,7 +34,6 @@ class Encoder(nn.Module):
         self.conv2 = nn.Conv2d(64, 32, 3, 1, 1)
         self.bn_conv2 = nn.BatchNorm2d(32)
         
-        
         self.fc1 = nn.Linear(fc1_size, 400)
         self.bn_fc1 = nn.BatchNorm1d(400)
         self.z_mu = nn.Linear(400, z_dim)
@@ -54,9 +53,9 @@ class Encoder(nn.Module):
         x = F.relu(x)
         x = self.bn_fc1(x)
         z_loc = self.z_mu(x)
-        z_scale = self.z_sigma(x)
+        z_logvar = self.z_sigma(x)
 
-        return z_loc, z_scale
+        return z_loc, z_logvar
 
 class Decoder(nn.Module):
 
@@ -100,12 +99,12 @@ class VAE(nn.Module):
 
     def forward(self, x):
 
-        z_mean, z_sigma = self.encoder(x)
-        std = torch.exp(0.5*z_sigma)
+        z_mean, z_logvar = self.encoder(x)
+        std = torch.exp(0.5*z_logvar)
         eps = torch.randn_like(std)
         output = self.decoder(z_mean+eps*std)
 
-        return output, z_mean, z_sigma
+        return output, z_mean, z_logvar
 
     def reconstruct_digit(self, sample):
         return self.decoder(sample)
@@ -160,8 +159,8 @@ if __name__ == "__main__":
         latent_mnist = []
         target = []
         for data, targets in val_loader:
-            latent_means, latent_sigma = vae.encoder(data)
-            latent_mnist.extend(latent_means.detach().numpy())
+            z_means, z_logvar = vae.encoder(data)
+            latent_mnist.extend(z_means.detach().numpy())
             target.extend(targets.numpy())
 
         # take first 1k
@@ -177,4 +176,4 @@ if __name__ == "__main__":
 
         fig = px.scatter(df, x="z1", y="z2", color="label")
 
-        pio.write_html(fig, file="raw.html", auto_open=True)
+        pio.write_html(fig, file="vis.html", auto_open=True)
