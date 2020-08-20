@@ -23,7 +23,7 @@ class MNISTDataset(MNIST):
 
     def __getitem__(self, index):
         img, _ = super(MNISTDataset, self).__getitem__(index)
-        return img, img
+        return img.to(device), img.to(device)
 
 class Encoder(nn.Module):
 
@@ -37,7 +37,7 @@ class Encoder(nn.Module):
         self.fc1 = nn.Linear(fc1_size, 400)
         self.bn_fc1 = nn.BatchNorm1d(400)
         self.z_mu = nn.Linear(400, z_dim)
-        self.z_sigma = nn.Linear(400, z_dim)
+        self.z_scale = nn.Linear(400, z_dim)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -53,7 +53,7 @@ class Encoder(nn.Module):
         x = F.relu(x)
         x = self.bn_fc1(x)
         z_loc = self.z_mu(x)
-        z_logvar = self.z_sigma(x)
+        z_logvar = self.z_scale(x)
 
         return z_loc, z_logvar
 
@@ -98,7 +98,6 @@ class VAE(nn.Module):
         self.decoder = Decoder(z_dim, 1568)
 
     def forward(self, x):
-
         z_mean, z_logvar = self.encoder(x)
         std = torch.exp(0.5*z_logvar)
         eps = torch.randn_like(std)
@@ -109,10 +108,10 @@ class VAE(nn.Module):
     def reconstruct_digit(self, sample):
         return self.decoder(sample)
 
-def loss_fn(output, mean, logvar, target):
-    bce = F.binary_cross_entropy(output, target, reduction='sum')
+def loss_fn(output, target):
+    bce = F.binary_cross_entropy(output[0], target, reduction='sum')
     
-    kl = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
+    kl = -0.5 * torch.sum(1 + output[2] - output[1].pow(2) - output[2].exp())
 
     return bce + kl
 
@@ -138,10 +137,10 @@ if __name__ == "__main__":
     vae.to(device)
     # download mnist & setup loaders
     if args.mode == "train":
-        train_loader = DataLoader(MNISTDataset('./data', train=True, download=True, transform=transforms.ToTensor()),
-            batch_size=128, shuffle=True)
-        val_loader = DataLoader(MNISTDataset('./data', train=False, transform=transforms.ToTensor()),
-            batch_size=128, shuffle=True)
+        train_set = MNISTDataset('./data', train=True, download=True, transform=transforms.ToTensor())
+        val_set = MNISTDataset('./data', train=False, transform=transforms.ToTensor())
+        train_loader = DataLoader(train_set, batch_size=128, shuffle=True)
+        val_loader = DataLoader(val_set, batch_size=128, shuffle=True)
 
         trainer = Trainer(vae, args.epochs, train_loader, val_loader, device, loss_fn, optimizer, args.print_freq)
         trainer.train_model()
